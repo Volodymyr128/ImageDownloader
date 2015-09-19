@@ -1,16 +1,27 @@
-package service;
+package rest;
 
+import dao.Image;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import services.HtmlService;
 import utils.Utils;
+import verticles.DownloadImageVerticle;
+
+import java.io.IOException;
+import java.util.List;
 
 public class RESTService extends AbstractVerticle {
 
     static final String DIR = "image-downloader" + RESTService.class.getPackage().getName().replace(".", "/");
+    private Vertx vertx;
 
     public static void main(String[] args) {
         Utils.deployVerticle(DIR, RESTService.class.getName());
@@ -18,13 +29,29 @@ public class RESTService extends AbstractVerticle {
 
     @Override
     public void start() {
-        Router router = Router.router(vertx);
+//        Vertx.clusteredVertx(options, res -> {
+//            if (res.succeeded()) {
+//                Vertx vertx = res.result();
+//                EventBus eventBus = vertx.eventBus();
+//                System.out.println("We now have a clustered event bus: " + eventBus);
+//
+//
+//            } else {
+//                System.out.println("Failed: " + res.cause());
+//            }
+//        });
+        VertxOptions options = new VertxOptions();
+        vertx = Vertx.vertx(options);
 
+        int poolSize = options.getInternalBlockingPoolSize();
+        DeploymentOptions deploymentOptions = new DeploymentOptions().setWorker(true).setInstances(poolSize);
+        vertx.deployVerticle("verticles.DownloadImageVerticle", deploymentOptions);
+
+        Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
         router.get("/job/:jobId/status").handler(this::handleGetJobStatus);
         router.get("/job/:jobId/results").handler(this::handleGetJobResults);
-        router.put("/job/:url").handler(this::handleSubmitJob);
-
+        router.put("/job").handler(this::handleSubmitJob);
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     }
 
@@ -61,8 +88,24 @@ public class RESTService extends AbstractVerticle {
     }
 
     private void handleSubmitJob(RoutingContext routingContext) {
-        String url = routingContext.request().getParam("url");
-        //TODO: submit job into separate thread - executeBlocking (managed by Vert.x thread pool)
+        EventBus eb = vertx.eventBus();
+        String pageUrl = routingContext.request().getParam("pageUrl");
+        HttpServerResponse response = routingContext.response();
+        try {
+            List<String> imagesUrls = HtmlService.parseUrl(pageUrl);
+
+            imagesUrls.stream().forEach(imageUrl -> {
+                eb.send("download-image", imageUrl, reply -> {
+                    if (reply.succeeded()) {
+                        reply.result().body();
+                    } else {
+                        System.out.println("No reply");
+                    }
+                });
+            });
+        } catch(IOException e) {
+            sendError(500, response);
+        }
     }
 
     private void sendError(int statusCode, HttpServerResponse response) {

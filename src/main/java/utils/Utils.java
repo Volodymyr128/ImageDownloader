@@ -16,7 +16,7 @@ public class Utils {
                 t.printStackTrace();
             }
         };
-        Vertx vertx = Vertx.vertx(new VertxOptions());
+        Vertx vertx = Vertx.vertx(new VertxOptions().setHAEnabled(true));
         runner.accept(vertx);
     }
 }
