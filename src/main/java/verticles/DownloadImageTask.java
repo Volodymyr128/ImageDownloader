@@ -17,8 +17,7 @@ import java.io.*;
 import java.net.URL;
 import java.util.Iterator;
 
-import static constants.SystemEvents.DOWNLOAD_IMAGE;
-import static constants.SystemEvents.IMAGE_DOWNLOADED;
+import static constants.Events.DOWNLOAD_IMAGE;
 
 public class DownloadImageTask extends AbstractVerticle {
 
@@ -34,7 +33,6 @@ public class DownloadImageTask extends AbstractVerticle {
 
     @Override
     public void start() {
-        //TODO: deploy PageDao
         EventBus eb = vertx.eventBus();
 
         eb.consumer(DOWNLOAD_IMAGE.toString(), message -> {
@@ -57,7 +55,7 @@ public class DownloadImageTask extends AbstractVerticle {
         String format = getImageFormat(iis, imageUrl);
 
         ImageInfo daoImage = parseImage(image, format, imageUrl, pageUrl);
-
+//TODO: create directory!!!
         String imagePath = ROOT + daoImage.getLocalImagePath();
         ImageIO.write(image, format, new File(imagePath));
 
@@ -69,13 +67,11 @@ public class DownloadImageTask extends AbstractVerticle {
         int height = image.getHeight(null);
         return new ImageInfo(imageUrl,
                 FileUtils.genValidFileName(formatName),
-                FileUtils.createDirectory(pageUrl),
+                pageUrl,
                 width,
                 height,
                 formatName);
     }
-
-
 
     private String getImageFormat(ImageInputStream input, String imageUrl) throws IOException {
         Iterator<ImageReader> iter = ImageIO.getImageReaders(input);

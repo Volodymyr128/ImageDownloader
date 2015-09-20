@@ -33,6 +33,10 @@ public class FileUtils {
      * @throws UnsupportedEncodingException
      */
     public static String genValidDirName(String pageUrl) throws UnsupportedEncodingException {
+        return base64(pageUrl);
+    }
+
+    public static String base64(String srt) {
         return new String(Base64.getUrlEncoder().encode(pageUrl.getBytes("UTF8")),"UTF-8");
     }
 

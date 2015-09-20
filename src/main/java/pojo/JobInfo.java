@@ -1,45 +1,92 @@
 package pojo;
 
-import com.google.common.collect.Lists;
-import io.vertx.core.json.JsonArray;
+import constants.JobStatus;
 import io.vertx.core.json.JsonObject;
+import utils.FileUtils;
 
-import java.util.List;
+import java.util.Base64;
+
+import static constants.JobStatus.PENDING;
 
 public class JobInfo {
 
-    private List<ImageInfo> images;
+    private String id;
     private String pageUrl;
-    private int totalImageCount;
+    private final int totalImageCount;
+    private int readyCount;
+    private JobStatus jobStatus;
 
     public JobInfo(String pageUrl, int totalImageCount) {
+        this.jobStatus = PENDING;
         this.pageUrl = pageUrl;
         this.totalImageCount = totalImageCount;
-        images = Lists.newLinkedList();
+        this.readyCount = 0;
+        this.id = FileUtils.base64(pageUrl);
     }
 
-    public JobInfo(ImageInfo imageInfo) {
-        images.add(imageInfo);
+    public JobInfo(String pageUrl, int totalImageCount, int readyCount) {
+        this.pageUrl = pageUrl;
+        this.totalImageCount = totalImageCount;
+        this.readyCount = readyCount;
+        this.id = FileUtils.base64(pageUrl);
+        this.jobStatus = (isCompleted()) ? JobStatus.OK : JobStatus.PENDING;
     }
 
     public String getPageUrl() {
         return pageUrl;
     }
 
-    public void addImage(ImageInfo image) {
-        images.add(image);
+    public int getTotalImageCount() {
+        return totalImageCount;
     }
 
-    public JsonObject toJson() {
-        JsonArray array = new JsonArray();
-        images.stream().forEach(img -> array.add(img.toJson()));
-        return new JsonObject()
-                .put("_id", pageUrl)
-                .put("images", array)
-                .put("totalImageCount", totalImageCount);
+    public JobStatus getJobStatus() {
+        return jobStatus;
+    }
+
+    public int getReadyCount() {
+        return readyCount;
+    }
+
+    public void incrementReadyCount() {
+        readyCount++;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public boolean isCompleted() {
-        return images.size() == totalImageCount;
+        return totalImageCount == readyCount;
+    }
+
+    public JsonObject toJson() {
+        return new JsonObject()
+                .put("_id", id)
+                .put("pageUrl", pageUrl)
+                .put("status", jobStatus.toString())
+                .put("total", totalImageCount)
+                .put("ready", readyCount);
+    }
+
+    public static JobInfo parseJobInfo(JsonObject o) {
+        String pageUrl = o.getString("pageUrl");
+        int totalImageCount = o.getInteger("totalImageCount");
+        Integer readyCount = o.getInteger("readyCount");
+        return (readyCount == null) ? new JsonObject(pageUrl, totalImageCount) : new JsonObject(pageUrl, totalImageCount, readyCount);
+    }
+
+    @Override
+    public int hashCode() {
+        return pageUrl.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof JobInfo)) {
+            return false;
+        }
+        //There shouldn't be two jobs with the same url
+        return ((JobInfo) o).getPageUrl().equals(pageUrl);
     }
 }
