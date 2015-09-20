@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 //TODO: add error handling
+//TODO: add indexes on image#pageUrl field
 public class ImageInfoDAO {
 
     private MongoClient mongo;

@@ -80,7 +80,7 @@ public class RESTService extends AbstractVerticle {
     }
 
     /**
-     * Sent DOWNLOAD_IMAGE tasks to DownloadImageTask verticles via Vert.x's EventBus.
+     * Sent DOWNLOAD_IMAGE tasks to DownloadTask verticles via Vert.x's EventBus.
      * EventBus get out-of-the-box message (task) queueing and round-robin algorithm which
      * distribute queued tasks between subscribers
      * @param routingContext

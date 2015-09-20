@@ -47,10 +47,6 @@ public class ImageInfo {
         return pageUrl;
     }
 
-    public String getLocalImagePath() {
-        return new StringBuilder(pageUrl).append(File.separator).append(imgName).toString();
-    }
-
     public JsonObject toJson() {
         return new JsonObject()
                 .put("_id", imgName)

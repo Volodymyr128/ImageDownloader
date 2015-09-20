@@ -19,7 +19,7 @@ import java.util.Iterator;
 
 import static constants.Events.DOWNLOAD_IMAGE;
 
-public class DownloadImageTask extends AbstractVerticle {
+public class DownloadTask extends AbstractVerticle {
 
     private final static String ROOT = System.getProperty("user.dir") + File.separator + "file-uploads" + File.separator;
 
@@ -28,7 +28,7 @@ public class DownloadImageTask extends AbstractVerticle {
         int poolSize = new VertxOptions().getInternalBlockingPoolSize();
         VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true);
         DeploymentOptions deployOpts = new DeploymentOptions().setWorker(true).setInstances(poolSize);
-        VertxUtils.deploy(DownloadImageTask.class.getName(), vertxOpts, deployOpts);
+        VertxUtils.deploy(DownloadTask.class.getName(), vertxOpts, deployOpts);
     }
 
     @Override
@@ -55,8 +55,14 @@ public class DownloadImageTask extends AbstractVerticle {
         String format = getImageFormat(iis, imageUrl);
 
         ImageInfo daoImage = parseImage(image, format, imageUrl, pageUrl);
-//TODO: create directory!!!
-        String imagePath = ROOT + daoImage.getLocalImagePath();
+        String dirName = FileUtils.createDirectory(pageUrl);
+        String imagePath = new StringBuilder(ROOT)
+                .append(dirName)
+                .append(File.separator)
+                .append(daoImage.getImgName())
+                .append(".")
+                .append(daoImage.getFormatName())
+                .toString();
         ImageIO.write(image, format, new File(imagePath));
 
         return daoImage;
