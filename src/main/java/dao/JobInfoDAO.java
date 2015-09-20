@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 //TODO: add error handling
-public class JobInfoDAO {
+public class JobInfoDAO extends AbstractDao {
 
     private MongoClient mongo;
 
@@ -18,30 +18,21 @@ public class JobInfoDAO {
         mongo = MongoClient.createShared(vertx, MongoConfigs.getConfigs());
     }
 
-    public void getJob(final String pageUrl, Consumer<List<JsonObject>> handler) {
+    public void getJob(final String pageUrl, Consumer<List<JsonObject>> successHandler, Consumer<Throwable> errorHandler) {
         mongo.find("jobs", new JsonObject().put("_id", pageUrl), lookup -> {
-            if (lookup.failed()) {
-                return;
-            }
-            handler.accept(lookup.result());
+            processListResult(lookup, successHandler, errorHandler);
         });
     }
 
-    public void insertJob(JobInfo jobInfo, Consumer<String> handler) {
+    public void insertJob(JobInfo jobInfo, Consumer<String> successHandler, Consumer<Throwable> errorHandler) {
         mongo.insert("jobs", jobInfo.toJson(), lookup -> {
-            if (lookup.failed()) {
-                return;
-            }
-            handler.accept(lookup.result());
+            processResult(lookup, successHandler, errorHandler);
         });
     }
 
-    public void updateJob(JobInfo jobInfo, Consumer<String> handler) {
+    public void updateJob(JobInfo jobInfo, Consumer<String> successHandler, Consumer<Throwable> errorHandler) {
         mongo.save("jobs", jobInfo.toJson(), lookup -> {
-            if (lookup.failed()) {
-                return;
-            }
-            handler.accept(lookup.result());
+            processResult(lookup, successHandler, errorHandler);
         });
     }
 }

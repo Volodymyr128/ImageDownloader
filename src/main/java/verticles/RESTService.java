@@ -27,26 +27,26 @@ import static constants.Events.GET_JOB_RESULTS;
 public class RESTService extends AbstractVerticle {
 
     public static void main(String[] args) {
-        VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true);
+        VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true).setClustered(true);
         VertxUtils.deploy(RESTService.class.getName(), vertxOpts);
     }
 
     @Override
     public void start(Future<Void> startFuture) {
-        VertxUtils.deployAsync(JobManager.class.getName(), res -> {
+        VertxUtils.deployAsync(JobManager.class.getName(), new VertxOptions().setClustered(true), res -> {
             if (res.succeeded()) {
+                Router router = Router.router(vertx);
+                router.route().handler(BodyHandler.create());
+                router.get("/job/:jobId/status").handler(this::handleGetJobStatus);
+                router.get("/job/:jobId/results").handler(this::handleGetJobResults);
+                router.put("/job").handler(this::handleSubmitJob);
+                vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+
                 startFuture.complete();
             } else {
                 startFuture.fail(res.cause());
             }
         });
-
-        Router router = Router.router(vertx);
-        router.route().handler(BodyHandler.create());
-        router.get("/job/:jobId/status").handler(this::handleGetJobStatus);
-        router.get("/job/:jobId/results").handler(this::handleGetJobResults);
-        router.put("/job").handler(this::handleSubmitJob);
-        vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     }
 
     private void handleGetJobStatus(RoutingContext routingContext) {
@@ -98,11 +98,11 @@ public class RESTService extends AbstractVerticle {
         try {
             List<String> imagesUrls = HtmlService.parseUrl(pageUrl);
 
-            JsonObject submitJobPayload = new JsonObject()
+            JsonObject payload = new JsonObject()
                     .put("pageUrl", pageUrl)
                     .put("images",  new JsonArray(imagesUrls))
                     .put("totalImageCount", imagesUrls.size());
-            eb.send(SUBMIT_JOB.toString(), submitJobPayload, reply -> {
+            eb.send(SUBMIT_JOB.toString(), payload, reply -> {
                 if (!reply.succeeded()) {
                     //TODO: add error handling
                 }

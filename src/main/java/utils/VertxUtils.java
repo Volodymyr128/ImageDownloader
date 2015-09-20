@@ -54,6 +54,10 @@ public class VertxUtils {
         deploy(verticleID, vertxOpts, deployOpts, completionHandler);
     }
 
+    public static void deployAsync(String verticleID, VertxOptions vertxOpts, Handler<AsyncResult<String>> completionHandler) {
+        deploy(verticleID, vertxOpts, null, completionHandler);
+    }
+
     public static void deployAsync(String verticleID, Handler<AsyncResult<String>> completionHandler) {
         deploy(verticleID, new VertxOptions(), null, completionHandler);
     }

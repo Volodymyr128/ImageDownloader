@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 //TODO: add error handling
 //TODO: add indexes on image#pageUrl field
-public class ImageInfoDAO {
+public class ImageInfoDAO extends AbstractDao {
 
     private MongoClient mongo;
 
@@ -18,21 +18,15 @@ public class ImageInfoDAO {
         mongo = MongoClient.createShared(vertx, MongoConfigs.getConfigs());
     }
 
-    public void insertImage(JsonObject imagenfo, Consumer<String> handler) {
+    public void insertImage(JsonObject imagenfo, Consumer<String> successHandler, Consumer<Throwable> errorHandler) {
         mongo.insert("images", imagenfo, lookup -> {
-            if (lookup.failed()) {
-                return;
-            }
-            handler.accept(lookup.result());
+            processResult(lookup, successHandler, errorHandler);
         });
     }
 
-    public void getImages(String pageUrl, Consumer<List<JsonObject>> handler) {
-        mongo.find("images", new JsonObject().put("pageUrl", pageUrl), lookup -> {
-            if(lookup.failed()) {
-                return;
-            }
-            handler.accept(lookup.result());
+    public void getImages(String jobId, Consumer<List<JsonObject>> successHandler, Consumer<Throwable> errorHandler) {
+        mongo.find("images", new JsonObject().put("jobId", jobId), lookup -> {
+            processListResult(lookup, successHandler, errorHandler);
         });
     }
 }

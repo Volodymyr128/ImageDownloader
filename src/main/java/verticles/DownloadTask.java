@@ -55,7 +55,7 @@ public class DownloadTask extends AbstractVerticle {
         String format = getImageFormat(iis, imageUrl);
 
         ImageInfo daoImage = parseImage(image, format, imageUrl, pageUrl);
-        String dirName = FileUtils.createDirectory(pageUrl);
+        String dirName = FileUtils.createDirectory(ROOT, pageUrl);
         String imagePath = new StringBuilder(ROOT)
                 .append(dirName)
                 .append(File.separator)

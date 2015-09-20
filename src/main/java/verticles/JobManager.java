@@ -33,22 +33,22 @@ public class JobManager extends AbstractVerticle {
     @Override
     public void start(Future<Void> startFuture) {
         int poolSize = new VertxOptions().getInternalBlockingPoolSize();
-        VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true);
+        VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true).setClustered(true);
         DeploymentOptions deployOpts = new DeploymentOptions().setWorker(true).setInstances(poolSize);
         VertxUtils.deployAsync(DownloadTask.class.getName(), vertxOpts, deployOpts, res -> {
             if (res.succeeded()) {
+                imageDAO = new ImageInfoDAO(vertx);
+                jobDAO = new JobInfoDAO(vertx);
+
+                initializeSubmitJobHandler();
+                initializeGetJobStatusHandler();
+                initializeGetJobResultsHandler();
+
                 startFuture.complete();
             } else {
                 startFuture.fail(res.cause());
             }
         });
-
-        imageDAO = new ImageInfoDAO(vertx);
-        jobDAO = new JobInfoDAO(vertx);
-
-        initializeSubmitJobHandler();
-        initializeGetJobStatusHandler();
-        initializeGetJobResultsHandler();
     }
 
     private void initializeGetJobResultsHandler() {
@@ -77,6 +77,8 @@ public class JobManager extends AbstractVerticle {
             jobDAO.insertJob(job, results -> {
                 pendingJobs.put(job.getId(), job);
                 message.reply(job.toJson());
+            }, error -> {
+                failedJobs.add(job.getId());
             });
 
             body.getJsonArray("images").stream().forEach(imageUrl -> {
@@ -85,10 +87,13 @@ public class JobManager extends AbstractVerticle {
                         .put("imageUrl", imageUrl);
                 eb.send(DOWNLOAD_IMAGE.toString(), downloadImagePayload, reply -> {
                     if (reply.succeeded()) {
-                        imageDAO.insertImage((JsonObject) reply.result(), result -> {
+                        imageDAO.insertImage((JsonObject) reply.result().body(), result -> {
                             updateJobStatus(job);
+                        }, error -> {
+                            error.printStackTrace();
                         });
                     } else {
+                        //TODO: add some threashold to determine if job is failed
                         failedJobs.add(job.getId()); //job can't succeed if we fail to load some image
                     }
                 });
@@ -120,6 +125,8 @@ public class JobManager extends AbstractVerticle {
             jobDAO.updateJob(job, result -> {
                 pendingJobs.remove(job.getId());
                 completedJobs.add(job.getId());
+            }, error -> {
+                //TODO: error handling
             });
         }
     }

@@ -19,8 +19,8 @@ public class FileUtils {
      * @return name of created/existed directory
      * @throws UnsupportedEncodingException
      */
-    public static String createDirectory(String pageUrl) throws UnsupportedEncodingException {
-        File dir = new File(genValidDirName(pageUrl));
+    public static String createDirectory(String root, String pageUrl) throws UnsupportedEncodingException {
+        File dir = new File(root + genValidDirName(pageUrl));
         if (!dir.exists()) {
             dir.mkdir();
         }
