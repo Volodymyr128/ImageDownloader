@@ -7,20 +7,28 @@ import java.util.function.Consumer;
 
 public class VertxUtils {
 
-    public static void deploy(String verticleID, VertxOptions options, DeploymentOptions deploymentOptions) {
+    public static void deploy(String verticleID, VertxOptions vertxOpts, DeploymentOptions deploymentOptions, Handler<AsyncResult<String>> completionHandler) {
         Consumer<Vertx> runner = vertx -> {
             try {
                 if (deploymentOptions != null) {
-                    vertx.deployVerticle(verticleID, deploymentOptions);
+                    if (completionHandler != null) {
+                        vertx.deployVerticle(verticleID, deploymentOptions, completionHandler);
+                    } else {
+                        vertx.deployVerticle(verticleID, deploymentOptions);
+                    }
                 } else {
-                    vertx.deployVerticle(verticleID);
+                    if (completionHandler != null) {
+                        vertx.deployVerticle(verticleID, completionHandler);
+                    } else {
+                        vertx.deployVerticle(verticleID);
+                    }
                 }
             } catch (Throwable t) {
                 t.printStackTrace();
             }
         };
-        if (options.isClustered()) {
-            Vertx.clusteredVertx(options, res -> {
+        if (vertxOpts.isClustered()) {
+            Vertx.clusteredVertx(vertxOpts, res -> {
                 if (res.succeeded()) {
                     Vertx vertx = res.result();
                     runner.accept(vertx);
@@ -29,8 +37,24 @@ public class VertxUtils {
                 }
             });
         } else {
-            Vertx vertx = Vertx.vertx(options);
+            Vertx vertx = Vertx.vertx(vertxOpts);
             runner.accept(vertx);
         }
+    }
+
+    public static void deploy(String verticleID, VertxOptions vertxOpts, DeploymentOptions deployOpts) {
+        deploy(verticleID, vertxOpts, deployOpts, null);
+    }
+
+    public static void deploy(String verticleID, VertxOptions options) {
+        deploy(verticleID, options, null, null);
+    }
+
+    public static void deployAsync(String verticleID, VertxOptions vertxOpts, DeploymentOptions deployOpts, Handler<AsyncResult<String>> completionHandler) {
+        deploy(verticleID, vertxOpts, deployOpts, completionHandler);
+    }
+
+    public static void deployAsync(String verticleID, Handler<AsyncResult<String>> completionHandler) {
+        deploy(verticleID, new VertxOptions(), null, completionHandler);
     }
 }

@@ -26,15 +26,21 @@ import static constants.Events.GET_JOB_RESULTS;
 //TODO: add clustering
 public class RESTService extends AbstractVerticle {
 
-    private Vertx vertx;
-
     public static void main(String[] args) {
         VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true);
-        VertxUtils.deploy(RESTService.class.getName(), vertxOpts, null);
+        VertxUtils.deploy(RESTService.class.getName(), vertxOpts);
     }
 
     @Override
-    public void start() {
+    public void start(Future<Void> startFuture) {
+        VertxUtils.deployAsync(JobManager.class.getName(), res -> {
+            if (res.succeeded()) {
+                startFuture.complete();
+            } else {
+                startFuture.fail(res.cause());
+            }
+        });
+
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
         router.get("/job/:jobId/status").handler(this::handleGetJobStatus);

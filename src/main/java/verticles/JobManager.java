@@ -6,9 +6,13 @@ import constants.JobStatus;
 import dao.ImageInfoDAO;
 import dao.JobInfoDAO;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 import pojo.JobInfo;
+import utils.VertxUtils;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -21,13 +25,24 @@ public class JobManager extends AbstractVerticle {
     private ImageInfoDAO imageDAO;
     private JobInfoDAO jobDAO;
 
-    //TODO: add fail-over on JobManager failure - need persist. I.e. redis, RabitMQ?
+    //TODO: add fail-over on JobManager failure
     private Map<String, JobInfo> pendingJobs = Maps.newHashMap();
     private HashSet<String> completedJobs = Sets.newHashSet();
     private HashSet<String> failedJobs = Sets.newHashSet();
 
     @Override
-    public void start() {
+    public void start(Future<Void> startFuture) {
+        int poolSize = new VertxOptions().getInternalBlockingPoolSize();
+        VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true);
+        DeploymentOptions deployOpts = new DeploymentOptions().setWorker(true).setInstances(poolSize);
+        VertxUtils.deployAsync(DownloadTask.class.getName(), vertxOpts, deployOpts, res -> {
+            if (res.succeeded()) {
+                startFuture.complete();
+            } else {
+                startFuture.fail(res.cause());
+            }
+        });
+
         imageDAO = new ImageInfoDAO(vertx);
         jobDAO = new JobInfoDAO(vertx);
 
