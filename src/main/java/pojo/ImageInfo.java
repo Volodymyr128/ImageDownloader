@@ -7,7 +7,7 @@ import java.io.File;
 //TODO: rename to ImageInfo
 public class ImageInfo {
 
-    //TODO: url and dir name isn't needed here, move it to PageInfo
+    //TODO: url and dir name isn't needed here, move it to JobInfo
     private final String url;
     private final String imgName;
     private final String dirName;

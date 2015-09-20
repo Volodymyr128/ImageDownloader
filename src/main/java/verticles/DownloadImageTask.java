@@ -1,4 +1,4 @@
-package job;
+package verticles;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
@@ -17,7 +17,8 @@ import java.io.*;
 import java.net.URL;
 import java.util.Iterator;
 
-import static constants.SystemEvents.*;
+import static constants.SystemEvents.DOWNLOAD_IMAGE;
+import static constants.SystemEvents.IMAGE_DOWNLOADED;
 
 public class DownloadImageTask extends AbstractVerticle {
 
@@ -39,7 +40,7 @@ public class DownloadImageTask extends AbstractVerticle {
         eb.consumer(DOWNLOAD_IMAGE.toString(), message -> {
 
             try {
-                JsonObject body = new JsonObject(message.body().toString());
+                JsonObject body = (JsonObject) message.body();
                 ImageInfo image = saveImage(body.getString("pageUrl"), body.getString("imageUrl"));
                 message.reply(image.toJson());
             } catch (IOException e) {

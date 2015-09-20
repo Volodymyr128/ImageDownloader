@@ -6,17 +6,19 @@ import io.vertx.core.json.JsonObject;
 
 import java.util.List;
 
-public class PageInfo {
+public class JobInfo {
 
     private List<ImageInfo> images;
     private String pageUrl;
+    private int totalImageCount;
 
-    public PageInfo(String pageUrl) {
+    public JobInfo(String pageUrl, int totalImageCount) {
         this.pageUrl = pageUrl;
+        this.totalImageCount = totalImageCount;
         images = Lists.newLinkedList();
     }
 
-    public PageInfo(ImageInfo imageInfo) {
+    public JobInfo(ImageInfo imageInfo) {
         images.add(imageInfo);
     }
 
@@ -33,6 +35,11 @@ public class PageInfo {
         images.stream().forEach(img -> array.add(img.toJson()));
         return new JsonObject()
                 .put("_id", pageUrl)
-                .put("images", array);
+                .put("images", array)
+                .put("totalImageCount", totalImageCount);
+    }
+
+    public boolean isCompleted() {
+        return images.size() == totalImageCount;
     }
 }

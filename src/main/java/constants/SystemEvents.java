@@ -6,7 +6,11 @@ public enum SystemEvents {
      */
     DOWNLOAD_IMAGE,
     /**
-     * Is triggered by worker verticle when image download is finished
+     * This is triggered on parse html page. Pass list of image urls as event payload
+     */
+    SUBMIT_JOB,
+    /**
+     * Is triggered after image downloading completion and storing into db
      */
     IMAGE_DOWNLOADED
 }

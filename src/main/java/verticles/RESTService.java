@@ -1,8 +1,9 @@
-package rest;
+package verticles;
 
 import io.vertx.core.*;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -13,7 +14,7 @@ import utils.VertxUtils;
 import java.io.IOException;
 import java.util.List;
 
-import static constants.SystemEvents.*;
+import static constants.SystemEvents.SUBMIT_JOB;
 
 
 //TODO: change configs - each cluster should contain RESTService+ImageDownloaderTasks+PageDAO+embedded mongo but also ability to each of elements separately
@@ -83,16 +84,12 @@ public class RESTService extends AbstractVerticle {
         HttpServerResponse response = routingContext.response();
         try {
             List<String> imagesUrls = HtmlService.parseUrl(pageUrl);
-            JsonObject body = new JsonObject().put("pageUrl", pageUrl).put("imageUrl", imagesUrls);
-            imagesUrls.stream().forEach(imageUrl -> {
-                eb.send(DOWNLOAD_IMAGE.toString(), body, reply -> {
-                    if (reply.succeeded()) {
-                        //TODO: handle response
-                    } else {
-                        //TODO: do something, maybe resend task
-                    }
-                });
-            });
+
+            JsonObject submitJobPayload = new JsonObject()
+                    .put("pageUrl", pageUrl)
+                    .put("images",  new JsonArray(imagesUrls));
+            eb.send(SUBMIT_JOB.toString(), submitJobPayload);
+            //TODO: respose?
         } catch(IOException e) {
             sendError(500, response);
         }
