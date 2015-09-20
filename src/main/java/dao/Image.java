@@ -2,21 +2,21 @@ package dao;
 
 import io.vertx.core.json.JsonObject;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.File;
 
 public class Image {
 
     private final String url;
+    private final String imgName;
+    private final String dirName;
     private final int width;
     private final int height;
     private final String formatName;
-    private final int id;
 
-    private static AtomicInteger uuid = new AtomicInteger(0);
-
-    public Image(String url, String name, int width, int height, String formatName) {
+    public Image(String url, String ingName, String dirName, int width, int height, String formatName) {
         this.url = url;
-        id = uuid.incrementAndGet();
+        this.imgName = ingName;
+        this.dirName = dirName;
         this.width = width;
         this.height = height;
         this.formatName = formatName;
@@ -38,10 +38,16 @@ public class Image {
         return formatName;
     }
 
-    public String getName() {
-        String[] urlChunks = url.split("/");
-        //TODO: replace with StringBuffer
-        return id + urlChunks[urlChunks.length - 1].replaceAll("\\W+", "") + "." + formatName;
+    public String getImgName() {
+        return imgName;
+    }
+
+    public String getDirName() {
+        return dirName;
+    }
+
+    public String getLocalImagePath() {
+        return new StringBuilder(dirName).append(File.separator).append(imgName).toString();
     }
 
     public JsonObject toJson() {

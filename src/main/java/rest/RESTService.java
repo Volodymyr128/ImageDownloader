@@ -1,6 +1,5 @@
 package rest;
 
-import dao.Image;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -12,34 +11,33 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import services.HtmlService;
-import utils.Utils;
-import verticles.DownloadImageVerticle;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Consumer;
 
+//TODO: more deep directory tree
+//TODO: test pub/sub queuing
+//TODO: add logging
+//TODO: add clustering
 public class RESTService extends AbstractVerticle {
 
-    static final String DIR = "image-downloader" + RESTService.class.getPackage().getName().replace(".", "/");
     private Vertx vertx;
 
     public static void main(String[] args) {
-        Utils.deployVerticle(DIR, RESTService.class.getName());
+        Consumer<Vertx> runner = vertx -> {
+            try {
+                vertx.deployVerticle(RESTService.class.getName());
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        };
+        Vertx vertx = Vertx.vertx(new VertxOptions().setHAEnabled(true));
+        runner.accept(vertx);
     }
 
     @Override
     public void start() {
-//        Vertx.clusteredVertx(options, res -> {
-//            if (res.succeeded()) {
-//                Vertx vertx = res.result();
-//                EventBus eventBus = vertx.eventBus();
-//                System.out.println("We now have a clustered event bus: " + eventBus);
-//
-//
-//            } else {
-//                System.out.println("Failed: " + res.cause());
-//            }
-//        });
         VertxOptions options = new VertxOptions();
         vertx = Vertx.vertx(options);
 
@@ -94,8 +92,10 @@ public class RESTService extends AbstractVerticle {
         try {
             List<String> imagesUrls = HtmlService.parseUrl(pageUrl);
 
+            JsonObject body = new JsonObject().put("pageUrl", pageUrl).put("imageUrl", imagesUrls);
+
             imagesUrls.stream().forEach(imageUrl -> {
-                eb.send("download-image", imageUrl, reply -> {
+                eb.send("download-image", body, reply -> {
                     if (reply.succeeded()) {
                         reply.result().body();
                     } else {
