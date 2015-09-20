@@ -9,7 +9,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import pojo.JobInfo;
 import services.HtmlService;
 import utils.FileUtils;
 import utils.VertxUtils;
@@ -22,10 +21,18 @@ import static constants.Events.GET_JOB_STATUS;
 import static constants.Events.GET_JOB_RESULTS;
 
 
-//TODO: change configs - each cluster should contain RESTService+ImageDownloaderTasks+PageDAO+embedded mongo but also ability to each of elements separately
 //TODO: more deep directory tree
-//TODO: add logging
-//TODO: add clustering
+/**
+ * Entry point of this app. It maybe clustered to avoid single failure point
+ *
+ * REST service handles user requests. At the moment it handles three requests:
+ * GET /job/:jobId/status - returns status of job by id
+ * GET /job/:jobId/results - returns results of job by id (means metainfo, without downloading all images)
+ * PUT /job - submit job for downloading all images from pageUrl pased in the body of request
+ *
+ * Request examples:
+ * localhost:8080/job where body { "jobId": "aHR0cDovL2thbHVzaGNpdHkuaWYudWEv" }
+ */
 public class RESTService extends AbstractVerticle {
 
     public static void main(String[] args) {
@@ -33,6 +40,11 @@ public class RESTService extends AbstractVerticle {
         VertxUtils.deploy(RESTService.class.getName(), vertxOpts);
     }
 
+    /**
+     * Automatically deploy JobManager on startup.
+     *
+     * Launch HHTP server on localhost with port 8080
+     */
     @Override
     public void start(Future<Void> startFuture) {
         VertxUtils.deployAsync(JobManager.class.getName(), new VertxOptions().setClustered(true), res -> {
@@ -51,6 +63,10 @@ public class RESTService extends AbstractVerticle {
         });
     }
 
+    /**
+     * Accepts {@code jobId} param from {@param routingContext} and retrieve job status from JobManager
+     * @param routingContext
+     */
     private void handleGetJobStatus(RoutingContext routingContext) {
         String jobId = routingContext.request().getParam("jobId");
         HttpServerResponse response = routingContext.response();
@@ -70,6 +86,10 @@ public class RESTService extends AbstractVerticle {
         }
     }
 
+    /**
+     * Send info about job: like pageUrl, totalImages, downloadedImages, jobStatus; and info about each image: like with, height, path in system
+     * @param routingContext
+     */
     private void handleGetJobResults(RoutingContext routingContext) {
         String jobId = routingContext.request().getParam("jobId");
         HttpServerResponse response = routingContext.response();

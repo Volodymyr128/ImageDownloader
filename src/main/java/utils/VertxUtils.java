@@ -5,6 +5,17 @@ import io.vertx.core.*;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+/**
+ * Class which provides different verticles deployment options. In our application we use the next options:
+ * DeploymentOptions:
+ *  * setWorker - means thread will be executed outside event loop (as part of fixed thread pool)
+ *  * setInstances - number of instances of specific verticle. That is used for DownloadTask in sake of parallel downloading
+ *  *
+ *  VertxOptions:
+ *  * setCluster - specify if current verticle should be launched on separate node.
+ *      Used for each verticle, if you look at console, you wil see that each verticle is launched on separate Hazelcast instance
+ *  * setHAEnabled - out-of-the-box fail-over, means Vertx will relaunch failed verticle
+ */
 public class VertxUtils {
 
     public static void deploy(String verticleID, VertxOptions vertxOpts, DeploymentOptions deploymentOptions, Handler<AsyncResult<String>> completionHandler) {

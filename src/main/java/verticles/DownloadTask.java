@@ -51,6 +51,13 @@ public class DownloadTask extends AbstractVerticle {
         });
     }
 
+    /**
+     * Save image to local file system
+     * @param pageUrl
+     * @param imageUrl
+     * @return
+     * @throws IOException
+     */
     public ImageInfo saveImage(String pageUrl, String imageUrl) throws IOException {
         InputStream is = new URL(imageUrl).openStream();
         ImageInputStream iis = ImageIO.createImageInputStream(is);

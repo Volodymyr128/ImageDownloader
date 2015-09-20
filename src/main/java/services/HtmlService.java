@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 public class HtmlService {
 
-
     public static List<String> parseUrl(String pageUrl) throws IOException {
         Document doc = Jsoup.connect(pageUrl).get();
         Elements images = doc.getElementsByTag("img");

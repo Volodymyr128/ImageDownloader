@@ -24,6 +24,9 @@ import java.util.function.Consumer;
 
 import static constants.Events.*;
 
+/**
+ * Tracks the status of each job, persist intermediate computation results, send download tasks btw worker threads.
+ */
 public class JobManager extends AbstractVerticle {
 
     private ImageInfoDAO imageDAO;
@@ -34,6 +37,11 @@ public class JobManager extends AbstractVerticle {
     private HashSet<String> completedJobs = Sets.newHashSet();
     private HashSet<String> failedJobs = Sets.newHashSet();
 
+    /**
+     * Automatically deploy DownloadTask verticles instances. That instances are worker thread, Their amount == VertxOptions().getInternalBlockingPoolSize()
+     * That means Vert.x does all parallel job for us.
+     * @param startFuture
+     */
     @Override
     public void start(Future<Void> startFuture) {
         int poolSize = new VertxOptions().getInternalBlockingPoolSize();
@@ -74,8 +82,10 @@ public class JobManager extends AbstractVerticle {
             JsonObject payload = (JsonObject) message.body();
             String jobId = payload.getString("jobId");
 
+            //pull JobInfo for requested job
             jobDAO.getJob(jobId, jobResult -> {
                 final JsonObject jobInfo = jobResult.get(0);
+                //Pull all images info for requested job
                 imageDAO.getImages(jobId, imagesResult -> {
                     JsonArray images = new JsonArray(imagesResult);
                     JsonObject response = new JsonObject().put("jobInfo", jobInfo).put("images", images);
@@ -99,14 +109,18 @@ public class JobManager extends AbstractVerticle {
         eb.consumer(SUBMIT_JOB.toString(), message -> {
 
             JsonObject body = (JsonObject) message.body();
+            //return job id to client
             final JobInfo job = JobInfo.parseJobInfo(body);
 
+            //persist job info
             jobDAO.insertJob(job, results -> {
                 pendingJobs.put(job.getId(), job);
             }, error -> {
+                //if we can't persist job - it's failed (can't handle db problems at runtime)
                 failedJobs.add(job.getId());
             });
 
+            //Send download task for each iamgeUrl
             body.getJsonArray("images").stream().forEach(imageUrl -> {
                 JsonObject downloadImagePayload = new JsonObject()
                         .put("pageUrl", job.getPageUrl())
@@ -127,7 +141,6 @@ public class JobManager extends AbstractVerticle {
         });
     }
 
-    //TODO: pass response handler
     private JobStatus getJobStatus(String jobId) {
         if (pendingJobs.containsKey(jobId)) {
             return JobStatus.PENDING;

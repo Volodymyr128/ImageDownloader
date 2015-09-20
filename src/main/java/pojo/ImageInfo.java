@@ -3,9 +3,6 @@ package pojo;
 import io.vertx.core.json.JsonObject;
 import utils.FileUtils;
 
-import java.io.File;
-
-//TODO: rename to ImageInfo
 public class ImageInfo {
 
     private final String url;

@@ -4,8 +4,6 @@ import constants.JobStatus;
 import io.vertx.core.json.JsonObject;
 import utils.FileUtils;
 
-import java.io.UnsupportedEncodingException;
-
 import static constants.JobStatus.PENDING;
 
 public class JobInfo {
@@ -34,18 +32,6 @@ public class JobInfo {
 
     public String getPageUrl() {
         return pageUrl;
-    }
-
-    public int getTotalImageCount() {
-        return totalImageCount;
-    }
-
-    public JobStatus getJobStatus() {
-        return jobStatus;
-    }
-
-    public int getReadyCount() {
-        return readyCount;
     }
 
     public void incrementReadyCount() {

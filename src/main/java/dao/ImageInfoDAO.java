@@ -3,13 +3,11 @@ package dao;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
-import utils.MongoConfigs;
+import configs.MongoConfigs;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-//TODO: add error handling
-//TODO: add indexes on image#pageUrl field
 public class ImageInfoDAO extends AbstractDao {
 
     private MongoClient mongo;

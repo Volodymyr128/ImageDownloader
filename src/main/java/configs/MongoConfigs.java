@@ -1,8 +1,7 @@
-package utils;
+package configs;
 
 import io.vertx.core.json.JsonObject;
 
-//TODO: move to config file or pass as comand line args
 public class MongoConfigs {
 
     private final static String DB_NAME = "DEMO";
