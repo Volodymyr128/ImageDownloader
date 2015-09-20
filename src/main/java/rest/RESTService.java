@@ -1,9 +1,6 @@
 package rest;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
+import io.vertx.core.*;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
@@ -11,13 +8,16 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import services.HtmlService;
+import utils.VertxUtils;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Consumer;
 
+import static constants.SystemEvents.*;
+
+
+//TODO: change configs - each cluster should contain RESTService+ImageDownloaderTasks+PageDAO+embedded mongo but also ability to each of elements separately
 //TODO: more deep directory tree
-//TODO: test pub/sub queuing
 //TODO: add logging
 //TODO: add clustering
 public class RESTService extends AbstractVerticle {
@@ -25,26 +25,12 @@ public class RESTService extends AbstractVerticle {
     private Vertx vertx;
 
     public static void main(String[] args) {
-        Consumer<Vertx> runner = vertx -> {
-            try {
-                vertx.deployVerticle(RESTService.class.getName());
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-        };
-        Vertx vertx = Vertx.vertx(new VertxOptions().setHAEnabled(true));
-        runner.accept(vertx);
+        VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true);
+        VertxUtils.deploy(RESTService.class.getName(), vertxOpts, null);
     }
 
     @Override
     public void start() {
-        VertxOptions options = new VertxOptions();
-        vertx = Vertx.vertx(options);
-
-        int poolSize = options.getInternalBlockingPoolSize();
-        DeploymentOptions deploymentOptions = new DeploymentOptions().setWorker(true).setInstances(poolSize);
-        vertx.deployVerticle("verticles.DownloadImageVerticle", deploymentOptions);
-
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
         router.get("/job/:jobId/status").handler(this::handleGetJobStatus);
@@ -59,7 +45,7 @@ public class RESTService extends AbstractVerticle {
         if (jobId == null) {
             sendError(400, response);
         } else {
-            //TODO: retrieve {@code jobStatus} from redis
+            //TODO: remove it
             JsonObject jobStatus = new JsonObject("{\"message\": \"Job status for jobId: " + jobId + "\" }");
             if (jobStatus == null) {
                 sendError(404, response);
@@ -75,7 +61,7 @@ public class RESTService extends AbstractVerticle {
         if (jobId == null) {
             sendError(400, response);
         } else {
-            //TODO: retrieve {@code jobResults} from redis
+            //TODO: remove it
             JsonObject jobResults = new JsonObject("{\"message\": \"Job results for jobId: " + jobId + "\" }");
             if (jobResults == null) {
                 sendError(404, response);
@@ -85,21 +71,25 @@ public class RESTService extends AbstractVerticle {
         }
     }
 
+    /**
+     * Sent DOWNLOAD_IMAGE tasks to DownloadImageTask verticles via Vert.x's EventBus.
+     * EventBus get out-of-the-box message (task) queueing and round-robin algorithm which
+     * distribute queued tasks between subscribers
+     * @param routingContext
+     */
     private void handleSubmitJob(RoutingContext routingContext) {
         EventBus eb = vertx.eventBus();
         String pageUrl = routingContext.request().getParam("pageUrl");
         HttpServerResponse response = routingContext.response();
         try {
             List<String> imagesUrls = HtmlService.parseUrl(pageUrl);
-
             JsonObject body = new JsonObject().put("pageUrl", pageUrl).put("imageUrl", imagesUrls);
-
             imagesUrls.stream().forEach(imageUrl -> {
-                eb.send("download-image", body, reply -> {
+                eb.send(DOWNLOAD_IMAGE.toString(), body, reply -> {
                     if (reply.succeeded()) {
-                        reply.result().body();
+                        //TODO: handle response
                     } else {
-                        System.out.println("No reply");
+                        //TODO: do something, maybe resend task
                     }
                 });
             });

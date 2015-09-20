@@ -1,9 +1,13 @@
-package verticles;
+package job;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
+import pojo.ImageInfo;
 import utils.FileUtils;
+import utils.VertxUtils;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -13,21 +17,30 @@ import java.io.*;
 import java.net.URL;
 import java.util.Iterator;
 
-public class DownloadImageVerticle extends AbstractVerticle {
+import static constants.SystemEvents.*;
+
+public class DownloadImageTask extends AbstractVerticle {
 
     private final static String ROOT = System.getProperty("user.dir") + File.separator + "file-uploads" + File.separator;
 
 
+    public static void main(String[] args) {
+        int poolSize = new VertxOptions().getInternalBlockingPoolSize();
+        VertxOptions vertxOpts = new VertxOptions().setHAEnabled(true);
+        DeploymentOptions deployOpts = new DeploymentOptions().setWorker(true).setInstances(poolSize);
+        VertxUtils.deploy(DownloadImageTask.class.getName(), vertxOpts, deployOpts);
+    }
+
     @Override
     public void start() {
+        //TODO: deploy PageDao
         EventBus eb = vertx.eventBus();
 
-        //TODO: doc for round-robin algorithm
-        eb.consumer("download-image", message -> {
+        eb.consumer(DOWNLOAD_IMAGE.toString(), message -> {
 
             try {
                 JsonObject body = new JsonObject(message.body().toString());
-                dao.Image image = saveImage(body.getString("pageUrl"), body.getString("imageUrl"));
+                ImageInfo image = saveImage(body.getString("pageUrl"), body.getString("imageUrl"));
                 message.reply(image.toJson());
             } catch (IOException e) {
                 message.reply("Error" + e);
@@ -35,14 +48,14 @@ public class DownloadImageVerticle extends AbstractVerticle {
         });
     }
 
-    public dao.Image saveImage(String pageUrl, String imageUrl) throws IOException {
+    public ImageInfo saveImage(String pageUrl, String imageUrl) throws IOException {
         InputStream is = new URL(imageUrl).openStream();
         ImageInputStream iis = ImageIO.createImageInputStream(is);
 
         BufferedImage image = ImageIO.read(iis);
         String format = getImageFormat(iis, imageUrl);
 
-        dao.Image daoImage = parseImage(image, format, imageUrl, pageUrl);
+        ImageInfo daoImage = parseImage(image, format, imageUrl, pageUrl);
 
         String imagePath = ROOT + daoImage.getLocalImagePath();
         ImageIO.write(image, format, new File(imagePath));
@@ -50,10 +63,10 @@ public class DownloadImageVerticle extends AbstractVerticle {
         return daoImage;
     }
 
-    private dao.Image parseImage(BufferedImage image, String formatName, String imageUrl, String pageUrl) throws IOException {
+    private ImageInfo parseImage(BufferedImage image, String formatName, String imageUrl, String pageUrl) throws IOException {
         int width = image.getWidth(null);
         int height = image.getHeight(null);
-        return new dao.Image(imageUrl,
+        return new ImageInfo(imageUrl,
                 FileUtils.genValidFileName(formatName),
                 FileUtils.createDirectory(pageUrl),
                 width,

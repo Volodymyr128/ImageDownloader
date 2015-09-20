@@ -12,6 +12,7 @@
         <vertx.version>3.0.0</vertx.version>
         <redis.version>3.0.0</redis.version>
         <guava.version>r05</guava.version>
+        <mongo.version>3.0.0</mongo.version>
     </properties>
 
     <dependencies>
@@ -32,6 +33,19 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-hazelcast</artifactId>
             <version>${vertx.version}</version>
+        </dependency>
+
+        <!--MONGO-->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-mongo-client</artifactId>
+            <version>${mongo.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-mongo-embedded-db</artifactId>
+            <version>${mongo.version}</version>
         </dependency>
 
         <!--HTML PARSING-->
