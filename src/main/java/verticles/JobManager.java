@@ -7,14 +7,13 @@ import dao.ImageInfoDAO;
 import dao.JobInfoDAO;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import pojo.JobInfo;
 
 import java.util.HashSet;
 import java.util.Map;
-import static constants.Events.SUBMIT_JOB;
-import static constants.Events.DOWNLOAD_IMAGE;
+
+import static constants.Events.*;
 
 //TODO: not worker, single instance. Deploy as singleton + part of RESTService?
 public class JobManager extends AbstractVerticle {
@@ -31,8 +30,30 @@ public class JobManager extends AbstractVerticle {
     public void start() {
         imageDAO = new ImageInfoDAO(vertx);
         jobDAO = new JobInfoDAO(vertx);
-        EventBus eb = vertx.eventBus();
 
+        initializeSubmitJobHandler();
+        initializeGetJobStatusHandler();
+        initializeGetJobResultsHandler();
+    }
+
+    private void initializeGetJobResultsHandler() {
+        EventBus eb = vertx.eventBus();
+        eb.consumer(GET_JOB_RESULTS.toString(), message -> {
+            //TODO: implement it!!!
+        });
+    }
+
+    private void initializeGetJobStatusHandler() {
+        EventBus eb = vertx.eventBus();
+        eb.consumer(GET_JOB_STATUS.toString(), message -> {
+            JsonObject payload = (JsonObject) message.body();
+            JobStatus status = getJobStatus(payload.getString("jobId"));
+            message.reply(new JsonObject(status.toString()));
+        });
+    }
+
+    private void initializeSubmitJobHandler() {
+        EventBus eb = vertx.eventBus();
         eb.consumer(SUBMIT_JOB.toString(), message -> {
 
             JsonObject body = (JsonObject) message.body();
@@ -44,15 +65,16 @@ public class JobManager extends AbstractVerticle {
             });
 
             body.getJsonArray("images").stream().forEach(imageUrl -> {
-                JsonObject downloadImagePayload =
-                        new JsonObject().put("pageUrl", job.getPageUrl()).put("imageUrl", imageUrl);
+                JsonObject downloadImagePayload = new JsonObject()
+                        .put("pageUrl", job.getPageUrl())
+                        .put("imageUrl", imageUrl);
                 eb.send(DOWNLOAD_IMAGE.toString(), downloadImagePayload, reply -> {
                     if (reply.succeeded()) {
                         imageDAO.insertImage(new JsonObject(reply.result()), result -> {
                             updateJobStatus(job);
                         });
                     } else {
-                        failedJobs.add(job.getId());
+                        failedJobs.add(job.getId()); //job can't succeed if we fail to load some image
                     }
                 });
             });
@@ -60,12 +82,12 @@ public class JobManager extends AbstractVerticle {
     }
 
     //TODO: pass response handler
-    private JobStatus getJobStatus(String pageUrl) {
-        if (pendingJobs.containsKey(pageUrl)) {
+    private JobStatus getJobStatus(String jobId) {
+        if (pendingJobs.containsKey(jobId)) {
             return JobStatus.PENDING;
-        } else if(completedJobs.contains(pageUrl)) {
+        } else if(completedJobs.contains(jobId)) {
             return JobStatus.OK;
-        } else if(failedJobs.contains(pageUrl)) {
+        } else if(failedJobs.contains(jobId)) {
             return JobStatus.ERROR;
         } else {
             /**
@@ -74,14 +96,6 @@ public class JobManager extends AbstractVerticle {
              * TODO: we may recover that info on startup (load job statuses in mempry)
              */
         return JobStatus.ERROR; //lack of time
-//            jobDAO.getJob(pageUrl, result -> {
-//                JobInfo job = JobInfo.parseJobInfo(result);
-//                if (job.isCompleted()) {
-//                    return JobStatus.OK; //how to return async?
-//                } else {
-//                    return JobStatus.ERROR; //how to return?
-//                }
-//            });
         }
     }
 

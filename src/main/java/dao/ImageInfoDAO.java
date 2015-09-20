@@ -3,7 +3,6 @@ package dao;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
-import pojo.ImageInfo;
 import utils.MongoConfigs;
 
 import java.util.List;

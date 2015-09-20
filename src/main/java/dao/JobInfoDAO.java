@@ -1,7 +1,5 @@
 package dao;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
@@ -20,8 +18,13 @@ public class JobInfoDAO {
         mongo = MongoClient.createShared(vertx, MongoConfigs.getConfigs());
     }
 
-    public void getJob(final String pageUrl, Handler<AsyncResult<JsonObject>> handler) {
-        mongo.findOne("jobs", new JsonObject().put("_id", pageUrl), new JsonObject(), handler);
+    public void getJob(final String pageUrl, Consumer<List<JsonObject>> handler) {
+        mongo.find("jobs", new JsonObject().put("_id", pageUrl), lookup -> {
+            if (lookup.failed()) {
+                return;
+            }
+            handler.accept(lookup.result());
+        });
     }
 
     public void insertJob(JobInfo jobInfo, Consumer<String> handler) {

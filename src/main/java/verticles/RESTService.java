@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.util.List;
 
 import static constants.Events.SUBMIT_JOB;
+import static constants.Events.GET_JOB_STATUS;
+import static constants.Events.GET_JOB_RESULTS;
 
 
 //TODO: change configs - each cluster should contain RESTService+ImageDownloaderTasks+PageDAO+embedded mongo but also ability to each of elements separately
@@ -47,13 +49,15 @@ public class RESTService extends AbstractVerticle {
         if (jobId == null) {
             sendError(400, response);
         } else {
-            //TODO: remove it
-            JsonObject jobStatus = new JsonObject("{\"message\": \"Job status for jobId: " + jobId + "\" }");
-            if (jobStatus == null) {
-                sendError(404, response);
-            } else {
-                response.putHeader("content-type", "application/json").end(jobStatus.encodePrettily());
-            }
+            JsonObject payload = new JsonObject().put("jobId", jobId);
+            vertx.eventBus().send(GET_JOB_STATUS.toString(), payload, reply ->{
+                if (!reply.succeeded()) {
+                    //TODO: add error handling
+                }
+                JsonObject jobStatus = (JsonObject) reply.result().body();
+                response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+                response.end(jobStatus.encode());
+            });
         }
     }
 
@@ -63,13 +67,15 @@ public class RESTService extends AbstractVerticle {
         if (jobId == null) {
             sendError(400, response);
         } else {
-            //TODO: remove it
-            JsonObject jobResults = new JsonObject("{\"message\": \"Job results for jobId: " + jobId + "\" }");
-            if (jobResults == null) {
-                sendError(404, response);
-            } else {
-                response.putHeader("content-type", "application/json").end(jobResults.encodePrettily());
-            }
+            JsonObject payload = new JsonObject().put("jobId", jobId);
+            vertx.eventBus().send(GET_JOB_RESULTS.toString(), payload, reply -> {
+                if (!reply.succeeded()) {
+                    //TODO: add error handling
+                }
+                JsonObject jobStatus = (JsonObject) reply.result().body();
+                response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+                response.end(jobStatus.encode());
+            });
         }
     }
 
@@ -90,8 +96,11 @@ public class RESTService extends AbstractVerticle {
                     .put("pageUrl", pageUrl)
                     .put("images",  new JsonArray(imagesUrls))
                     .put("totalImageCount", imagesUrls.size());
-            eb.send(SUBMIT_JOB.toString(), submitJobPayload, res -> {
-                JsonObject submitedJob = new JsonObject(res.result().body());
+            eb.send(SUBMIT_JOB.toString(), submitJobPayload, reply -> {
+                if (!reply.succeeded()) {
+                    //TODO: add error handling
+                }
+                JsonObject submitedJob = (JsonObject) reply.result().body();
                 response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
                 response.end(submitedJob.encode());
             });
