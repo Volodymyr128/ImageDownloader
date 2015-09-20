@@ -32,12 +32,16 @@ public class FileUtils {
      * @return returns unique valid directory name based on {@param pageUrl} argument
      * @throws UnsupportedEncodingException
      */
-    public static String genValidDirName(String pageUrl) throws UnsupportedEncodingException {
+    public static String genValidDirName(String pageUrl) {
         return base64(pageUrl);
     }
 
     public static String base64(String srt) {
-        return new String(Base64.getUrlEncoder().encode(pageUrl.getBytes("UTF8")),"UTF-8");
+        try {
+            return new String(Base64.getUrlEncoder().encode(srt.getBytes("UTF8")),"UTF-8");
+        } catch (UnsupportedEncodingException e) { //just don't know what to do, when system can't generate dir/file names
+            throw new RuntimeException(e);
+        }
     }
 
     /**

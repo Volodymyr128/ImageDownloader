@@ -70,7 +70,7 @@ public class JobManager extends AbstractVerticle {
                         .put("imageUrl", imageUrl);
                 eb.send(DOWNLOAD_IMAGE.toString(), downloadImagePayload, reply -> {
                     if (reply.succeeded()) {
-                        imageDAO.insertImage(new JsonObject(reply.result()), result -> {
+                        imageDAO.insertImage((JsonObject) reply.result(), result -> {
                             updateJobStatus(job);
                         });
                     } else {

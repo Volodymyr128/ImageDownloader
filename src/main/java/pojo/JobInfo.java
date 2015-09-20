@@ -4,7 +4,7 @@ import constants.JobStatus;
 import io.vertx.core.json.JsonObject;
 import utils.FileUtils;
 
-import java.util.Base64;
+import java.io.UnsupportedEncodingException;
 
 import static constants.JobStatus.PENDING;
 
@@ -73,7 +73,7 @@ public class JobInfo {
         String pageUrl = o.getString("pageUrl");
         int totalImageCount = o.getInteger("totalImageCount");
         Integer readyCount = o.getInteger("readyCount");
-        return (readyCount == null) ? new JsonObject(pageUrl, totalImageCount) : new JsonObject(pageUrl, totalImageCount, readyCount);
+        return (readyCount == null) ? new JobInfo(pageUrl, totalImageCount) : new JobInfo(pageUrl, totalImageCount, readyCount);
     }
 
     @Override

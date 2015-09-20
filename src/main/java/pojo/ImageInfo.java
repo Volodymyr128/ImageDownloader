@@ -53,6 +53,6 @@ public class ImageInfo {
                 .put("pageUrl", pageUrl)
                 .put("width", width)
                 .put("height", height)
-                .put("formatName", formatName)
+                .put("formatName", formatName);
     }
 }
