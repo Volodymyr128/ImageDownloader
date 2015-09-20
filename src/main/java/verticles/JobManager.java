@@ -10,16 +10,20 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import pojo.JobInfo;
+import utils.FileUtils;
 import utils.VertxUtils;
 
+import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static constants.Events.*;
 
-//TODO: not worker, single instance. Deploy as singleton + part of RESTService?
 public class JobManager extends AbstractVerticle {
 
     private ImageInfoDAO imageDAO;
@@ -44,6 +48,11 @@ public class JobManager extends AbstractVerticle {
                 initializeGetJobStatusHandler();
                 initializeGetJobResultsHandler();
 
+                try {
+                    FileUtils.createDirectory(System.getProperty("user.dir") + File.separator + "file-uploads");
+                } catch (UnsupportedEncodingException e) {
+                    startFuture.fail("Can't create folder to download images");
+                }
                 startFuture.complete();
             } else {
                 startFuture.fail(res.cause());
@@ -54,7 +63,25 @@ public class JobManager extends AbstractVerticle {
     private void initializeGetJobResultsHandler() {
         EventBus eb = vertx.eventBus();
         eb.consumer(GET_JOB_RESULTS.toString(), message -> {
-            //TODO: implement it!!!
+
+            final Consumer<Throwable> errorHandler = new Consumer<Throwable>() {
+                @Override
+                public void accept(Throwable throwable) {
+                    message.reply(new JsonObject().put("error", "can't fetch images from db"));
+                }
+            };
+
+            JsonObject payload = (JsonObject) message.body();
+            String jobId = payload.getString("jobId");
+
+            jobDAO.getJob(jobId, jobResult -> {
+                final JsonObject jobInfo = jobResult.get(0);
+                imageDAO.getImages(jobId, imagesResult -> {
+                    JsonArray images = new JsonArray(imagesResult);
+                    JsonObject response = new JsonObject().put("jobInfo", jobInfo).put("images", images);
+                    message.reply(response);
+                }, errorHandler);
+            }, errorHandler);
         });
     }
 
@@ -76,7 +103,6 @@ public class JobManager extends AbstractVerticle {
 
             jobDAO.insertJob(job, results -> {
                 pendingJobs.put(job.getId(), job);
-                message.reply(job.toJson());
             }, error -> {
                 failedJobs.add(job.getId());
             });

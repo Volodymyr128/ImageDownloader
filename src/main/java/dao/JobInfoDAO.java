@@ -18,8 +18,8 @@ public class JobInfoDAO extends AbstractDao {
         mongo = MongoClient.createShared(vertx, MongoConfigs.getConfigs());
     }
 
-    public void getJob(final String pageUrl, Consumer<List<JsonObject>> successHandler, Consumer<Throwable> errorHandler) {
-        mongo.find("jobs", new JsonObject().put("_id", pageUrl), lookup -> {
+    public void getJob(final String jobId, Consumer<List<JsonObject>> successHandler, Consumer<Throwable> errorHandler) {
+        mongo.find("jobs", new JsonObject().put("_id", jobId), lookup -> {
             processListResult(lookup, successHandler, errorHandler);
         });
     }

@@ -40,7 +40,11 @@ public class DownloadTask extends AbstractVerticle {
             try {
                 JsonObject body = (JsonObject) message.body();
                 ImageInfo image = saveImage(body.getString("pageUrl"), body.getString("imageUrl"));
-                message.reply(image.toJson());
+                if (image == null) {
+                    message.fail(501, "Can't download image of such format");
+                } else {
+                    message.reply(image.toJson());
+                }
             } catch (IOException e) {
                 message.reply("Error" + e);
             }
@@ -52,6 +56,10 @@ public class DownloadTask extends AbstractVerticle {
         ImageInputStream iis = ImageIO.createImageInputStream(is);
 
         BufferedImage image = ImageIO.read(iis);
+        if (image == null) {
+            return null;
+        }
+
         String format = getImageFormat(iis, imageUrl);
 
         ImageInfo daoImage = parseImage(image, format, imageUrl, pageUrl);

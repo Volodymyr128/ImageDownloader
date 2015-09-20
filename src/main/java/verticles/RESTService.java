@@ -9,7 +9,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import pojo.JobInfo;
 import services.HtmlService;
+import utils.FileUtils;
 import utils.VertxUtils;
 
 import java.io.IOException;
@@ -57,12 +59,13 @@ public class RESTService extends AbstractVerticle {
         } else {
             JsonObject payload = new JsonObject().put("jobId", jobId);
             vertx.eventBus().send(GET_JOB_STATUS.toString(), payload, reply ->{
-                if (!reply.succeeded()) {
+                if (reply.succeeded()) {
+                    JsonObject jobStatus = (JsonObject) reply.result().body();
+                    response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+                    response.end(jobStatus.encode());
+                } else {
                     //TODO: add error handling
                 }
-                JsonObject jobStatus = (JsonObject) reply.result().body();
-                response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-                response.end(jobStatus.encode());
             });
         }
     }
@@ -75,12 +78,13 @@ public class RESTService extends AbstractVerticle {
         } else {
             JsonObject payload = new JsonObject().put("jobId", jobId);
             vertx.eventBus().send(GET_JOB_RESULTS.toString(), payload, reply -> {
-                if (!reply.succeeded()) {
+                if (reply.succeeded()) {
+                    JsonObject jobStatus = (JsonObject) reply.result().body();
+                    response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+                    response.end(jobStatus.encode());
+                } else {
                     //TODO: add error handling
                 }
-                JsonObject jobStatus = (JsonObject) reply.result().body();
-                response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-                response.end(jobStatus.encode());
             });
         }
     }
@@ -97,19 +101,22 @@ public class RESTService extends AbstractVerticle {
         HttpServerResponse response = routingContext.response();
         try {
             List<String> imagesUrls = HtmlService.parseUrl(pageUrl);
+            /** TODO: filter supported by ImageIO formats
+             imagesUrls.stream()
+                 .filter(url -> FileUtils.isValidFormat(FileUtils.getFormatFromUrl(url)))
+                 .collect(Collectors.toList());
+             */
 
             JsonObject payload = new JsonObject()
                     .put("pageUrl", pageUrl)
                     .put("images",  new JsonArray(imagesUrls))
                     .put("totalImageCount", imagesUrls.size());
-            eb.send(SUBMIT_JOB.toString(), payload, reply -> {
-                if (!reply.succeeded()) {
-                    //TODO: add error handling
-                }
-                JsonObject submitedJob = (JsonObject) reply.result().body();
-                response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-                response.end(submitedJob.encode());
-            });
+
+            String jobId = FileUtils.base64(pageUrl);
+            response.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+            response.end(new JsonObject().put("jobId", jobId).encode());
+
+            eb.send(SUBMIT_JOB.toString(), payload);
         } catch(IOException e) {
             sendError(500, response);
         }

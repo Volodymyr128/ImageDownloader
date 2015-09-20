@@ -11,7 +11,7 @@ import java.util.UUID;
 public class FileUtils {
 
     private final static String DEFAULT_FORMAT = "jpeg";
-    private final static List knownImageFormats = Arrays.asList("jpg", "png", "jpeg");
+    private final static List knownImageFormats = Arrays.asList("jpg", "png", "jpeg", "gif", "bmp", "png");
 
     /**
      * Creates directory with name generated as base64(url)
@@ -20,7 +20,11 @@ public class FileUtils {
      * @throws UnsupportedEncodingException
      */
     public static String createDirectory(String root, String pageUrl) throws UnsupportedEncodingException {
-        File dir = new File(root + genValidDirName(pageUrl));
+        return createDirectory(root + genValidDirName(pageUrl));
+    }
+
+    public static String createDirectory(String path) throws UnsupportedEncodingException {
+        File dir = new File(path);
         if (!dir.exists()) {
             dir.mkdir();
         }
@@ -80,7 +84,7 @@ public class FileUtils {
      * @param format
      * @return return {@code true} if file format is know, {@code false} otherwise
      */
-    private static boolean isValidFormat(String format) {
+    public static boolean isValidFormat(String format) {
         return knownImageFormats.contains(format.toLowerCase());
     }
 }

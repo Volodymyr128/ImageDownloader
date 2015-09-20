@@ -2,4 +2,3 @@ target
 .idea
 .vertx
 *.iml
-file-uploads/*
